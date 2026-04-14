@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psychology Experiment</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; display: flex; justify-content: center; padding-top: 50px; min-height: 100vh; margin: 0; }
+        #experiment-container { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; }
+        .hidden { display: none; }
+        input[type="text"] { padding: 10px; width: 80%; font-size: 16px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 10px 25px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; }
+        button:hover { background-color: #0056b3; }
+        .word-display { font-size: 32px; font-weight: bold; margin-bottom: 20px; color: #333; }
+        .image-container { margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        .exp-image { max-width: 100%; height: auto; border-radius: 8px; margin-bottom: 15px; }
+        .error { color: red; font-size: 14px; display: none; }
+    </style>
+</head>
+<body>
+
+<div id="experiment-container">
+    <div id="screen-welcome">
+        <h1>Welcome!</h1>
+        <p>Please type each word as it appears on the screen.</p>
+        <button onclick="startExperiment()">Start</button>
+    </div>
+
+    <div id="screen-priming" class="hidden">
+        <p>Type the word below:</p>
+        <div id="display-word" class="word-display"></div>
+        <input type="text" id="word-input" autocomplete="off">
+        <br>
+        <button id="next-word-btn" onclick="processWord()">Next</button>
+    </div>
+
+    <div id="screen-instructions" class="hidden">
+        <p>Please look at each image and answer the prompt below it.</p>
+        <p><strong>Each response is limited to 3 words.</strong></p>
+        <button onclick="showImages()">Continue</button>
+    </div>
+
+    <div id="screen-images" class="hidden">
+        <div id="image-list"></div>
+        <button onclick="submitData()">Submit</button>
+    </div>
+
+    <div id="screen-thanks" class="hidden">
+        <h2>Thank you!</h2>
+        <p>Your responses have been recorded.</p>
+    </div>
+</div>
+
+<script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZSAprVsGTUJnMRgdqEhQD4A129bJPB5Wdy0x0kmOt6hN0doiKJQeqineUBwxQfXSkIg/exec";
+    
+    let participantId, condition;
+    let currentWordIndex = 0;
+    let wordList = [];
+
+    const conditions = {
+        positive: ["Joy", "Laughter", "Victory", "Paradise", "Thrill", "Kindness", "Freedom", "Beloved", "Radiant", "Triumph"],
+        negative: ["Agony", "Failure", "Poison", "Grief", "Danger", "Hatred", "Sickness", "Tragedy", "Shame", "Guilt"],
+        control: ["Chair", "Handle", "Pencil", "Curtain", "Concrete", "Avenue", "Standard", "Platform", "Utensil", "Adjacent"]
+    };
+
+    const imageIds = [
+        "1jEYUA3FI6CqAkWiVfhv-X8lPbtoyywVD", "1lLsIRBdlJkJdj2pRwBhSvKLgd7UGdXQs",
+        "1FsZmNsIIAHsci5VqoKX89jbtz6rZMi5N", "1EPawWvmUz7qj6wfFr80-OCEf-fbgLW17",
+        "1DY5l-w-hLgH1O-d0Q920OKkjypSxTsom", "13XQuxCzhpaf-aTuWm7s4VmYFZDbDgUlm",
+        "1ynE5tyxFDBp_XiadPFWP8SOcVCcS6-lz", "1MEKHRI6zvtZlnDAIK25YaDnPaovaKuB0",
+        "1PPpYEMCkGsMpcbxSQKsrtpi-c5voD3XT", "14eZtP-R0vS4hB6vtKI60wp3SiXE-TcWA"
+    ];
+
+    function startExperiment() {
+        // 1. Generate ID and Condition
+        participantId = "ID-" + Math.random().toString(36).substr(2, 6).toUpperCase();
+        const keys = Object.keys(conditions);
+        condition = keys[Math.floor(Math.random() * keys.length)];
+        wordList = conditions[condition];
+
+        // 2. Transition Screen
+        document.getElementById('screen-welcome').classList.add('hidden');
+        document.getElementById('screen-priming').classList.remove('hidden');
+        showNextWord();
+    }
+
+    function showNextWord() {
+        if (currentWordIndex < wordList.length) {
+            document.getElementById('display-word').innerText = wordList[currentWordIndex];
+            document.getElementById('word-input').value = "";
+            document.getElementById('word-input').focus();
+        } else {
+            document.getElementById('screen-priming').classList.add('hidden');
+            document.getElementById('screen-instructions').classList.remove('hidden');
+        }
+    }
+
+    function processWord() {
+        currentWordIndex++;
+        showNextWord();
+    }
+
+    function showImages() {
+        document.getElementById('screen-instructions').classList.add('hidden');
+        document.getElementById('screen-images').classList.remove('hidden');
+
+        // Randomize image order
+        const shuffledImages = [...imageIds].sort(() => Math.random() - 0.5);
+        const container = document.getElementById('image-list');
+
+        shuffledImages.forEach((id, index) => {
+            const div = document.createElement('div');
+            div.className = 'image-container';
+            div.innerHTML = `
+                <img class="exp-image" src="https://drive.google.com/thumbnail?id=${id}&sz=w1000">
+                <p>List the emotions seen in this image.</p>
+                <input type="text" class="img-resp" placeholder="Max 3 words..." oninput="validateWords(this)">
+                <p class="error">Maximum 3 words allowed.</p>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function validateWords(input) {
+        const words = input.value.trim().split(/\s+/);
+        const errorMsg = input.nextElementSibling;
+        if (words.length > 3 && input.value.slice(-1) === " ") {
+            input.value = words.slice(0, 3).join(" ");
+            errorMsg.style.display = "block";
+        } else {
+            errorMsg.style.display = "none";
+        }
+    }
+
+    async function submitData() {
+        const responses = document.querySelectorAll('.img-resp');
+        const payload = {
+            Participant_ID: participantId,
+            Condition: condition
+        };
+
+        // Map responses to Trial_1response... Trial_10response
+        responses.forEach((resp, i) => {
+            payload[`Trial_${i + 1}response`] = resp.value;
+        });
+
+        // Visual Feedback
+        document.getElementById('screen-images').innerHTML = "<p>Sending data, please wait...</p>";
+
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            document.getElementById('screen-images').classList.add('hidden');
+            document.getElementById('screen-thanks').classList.remove('hidden');
+        } catch (e) {
+            alert("Error sending data. Please check your connection.");
+        }
+    }
+
+    // Allow "Enter" key for the word task
+    document.getElementById('word-input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') processWord();
+    });
+</script>
+
+</body>
+</html>
