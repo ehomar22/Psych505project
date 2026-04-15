@@ -172,38 +172,37 @@
     }
 
     async function submitFinalData() {
-        document.getElementById('screen-images').classList.add('hidden');
-        document.getElementById('screen-thanks').classList.remove('hidden');
+    document.getElementById('screen-images').classList.add('hidden');
+    document.getElementById('screen-thanks').classList.remove('hidden');
 
-        const payload = {
-            Participant_ID: participantId,
-            Condition: condition
-        };
+    // 1. Create a URLSearchParams object (This is the "URL-Safe" way)
+    const params = new URLSearchParams();
+    params.append('Participant_ID', participantId);
+    params.append('Condition', condition);
 
-        // Package data using the suffix keys
-        imageIds.forEach(id => {
-            payload[id + "_emo"] = results.emotions[id] || "NULL_VALUE";
-            payload[id + "_story"] = results.stories[id] || "NULL_VALUE";
+    // 2. Add all the responses
+    imageIds.forEach(id => {
+        params.append(id + "_emo", results.emotions[id] || "Missing");
+        params.append(id + "_story", results.stories[id] || "Missing");
+    });
+
+    // 3. Construct the full URL with data attached
+    const finalUrl = SCRIPT_URL + "?" + params.toString();
+
+    console.log("Submitting to URL:", finalUrl);
+
+    try {
+        // We use a simple POST to the URL that has all the data attached
+        await fetch(finalUrl, {
+            method: 'POST',
+            mode: 'no-cors'
         });
-
-        // Debugging logs in the browser console
-        console.log("SENDING DATA:", payload);
-
-        try {
-            await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors', 
-                cache: 'no-cache',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
-            document.getElementById('final-status').innerText = "Success!";
-            document.getElementById('final-subtext').innerText = "Your responses have been recorded in the Google Sheet.";
-        } catch (e) {
-            document.getElementById('final-status').innerText = "Error";
-            console.error("The Send Failed:", e);
-        }
+        document.getElementById('final-status').innerText = "Success!";
+    } catch (e) {
+        document.getElementById('final-status').innerText = "Error";
+        console.error(e);
     }
+}
 </script>
 
 </body>
