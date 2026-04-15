@@ -62,8 +62,8 @@
 </div>
 
 <script>
-    // 1. YOUR APPS SCRIPT URL HERE
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZSAprVsGTUJnMRgdqEhQD4A129bJPB5Wdy0x0kmOt6hN0doiKJQeqineUBwxQfXSkIg/exec";
+    // --- PASTE YOUR URL BELOW ---
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLpe3QyZNgoHwAhSKp8YnkNNScLI6oTwy2xS09LxxCTfyN_vo12pzYhnDijUkBDkXUvA/exec";
     
     let participantId, condition;
     let currentWordIndex = 0;
@@ -71,7 +71,7 @@
     let wordList = [];
     let shuffledImageIds = [];
     
-    // Store data in objects keyed by the Image ID
+    // Core data storage
     const results = { emotions: {}, stories: {} };
 
     const conditions = {
@@ -80,7 +80,6 @@
         control: ["Chair", "Handle", "Pencil", "Curtain", "Concrete", "Avenue", "Standard", "Platform", "Utensil", "Adjacent"]
     };
 
-    // The Master List of Image IDs
     const imageIds = [
         "1jEYUA3FI6CqAkWiVfhv-X8lPbtoyywVD", "1lLsIRBdlJkJdj2pRwBhSvKLgd7UGdXQs",
         "1FsZmNsIIAHsci5VqoKX89jbtz6rZMi5N", "1EPawWvmUz7qj6wfFr80-OCEf-fbgLW17",
@@ -90,10 +89,9 @@
     ];
 
     function startExperiment() {
-        // Create Random ID and Assign Condition
         participantId = "ID-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-        const condKeys = Object.keys(conditions);
-        condition = condKeys[Math.floor(Math.random() * condKeys.length)];
+        const keys = Object.keys(conditions);
+        condition = keys[Math.floor(Math.random() * keys.length)];
         wordList = conditions[condition];
         
         document.getElementById('screen-welcome').classList.add('hidden');
@@ -113,7 +111,6 @@
         }
     }
 
-    // Allow 'Enter' key to proceed in word task
     document.getElementById('word-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && e.target.value.trim() !== "") {
             currentWordIndex++;
@@ -122,7 +119,6 @@
     });
 
     function beginImageTrials() {
-        // Randomize the image array for THIS participant
         shuffledImageIds = [...imageIds].sort(() => Math.random() - 0.5);
         document.getElementById('screen-instructions').classList.add('hidden');
         document.getElementById('screen-images').classList.remove('hidden');
@@ -133,8 +129,6 @@
         const id = shuffledImageIds[currentImageIndex];
         document.getElementById('trial-counter').innerText = `Image ${currentImageIndex + 1} of 10`;
         document.getElementById('active-image').src = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
-        
-        // Reset inputs for the new image
         document.getElementById('emotion-input').value = "";
         document.getElementById('story-input').value = "";
         
@@ -148,7 +142,6 @@
         const error = document.getElementById('word-error');
         if (words.length > 3) {
             error.style.display = "block";
-            // Hard limit to 3 words
             input.value = words.slice(0, 3).join(" ");
         } else {
             error.style.display = "none";
@@ -165,7 +158,7 @@
             return;
         }
 
-        // Save responses using ID + Suffix (matches the Apps Script lookup)
+        // SAVE DATA TO OBJECT
         results.emotions[currentId] = emo;
         results.stories[currentId] = story;
 
@@ -187,30 +180,28 @@
             Condition: condition
         };
 
-        // Construct the final package
+        // Package data using the suffix keys
         imageIds.forEach(id => {
-            payload[id + "_emo"] = results.emotions[id] || "No Data";
-            payload[id + "_story"] = results.stories[id] || "No Data";
+            payload[id + "_emo"] = results.emotions[id] || "NULL_VALUE";
+            payload[id + "_story"] = results.stories[id] || "NULL_VALUE";
         });
 
-       try {
+        // Debugging logs in the browser console
+        console.log("SENDING DATA:", payload);
+
+        try {
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors', 
                 cache: 'no-cache',
-                headers: {
-                    'Content-Type': 'text/plain;charset=utf-8', // Google handles plain text more reliably than JSON
-                },
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify(payload)
             });
-            
-            // UI Update on success
             document.getElementById('final-status').innerText = "Success!";
-            document.getElementById('final-subtext').innerText = "Your responses have been saved to the Google Sheet. You may now close this window.";
+            document.getElementById('final-subtext').innerText = "Your responses have been recorded in the Google Sheet.";
         } catch (e) {
-            document.getElementById('final-status').innerText = "Submission Error";
-            document.getElementById('final-subtext').innerText = "Something went wrong. Please check your internet connection.";
-            console.error(e);
+            document.getElementById('final-status').innerText = "Error";
+            console.error("The Send Failed:", e);
         }
     }
 </script>
