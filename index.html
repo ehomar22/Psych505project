@@ -9,12 +9,12 @@
         #experiment-container { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 650px; text-align: center; }
         .hidden { display: none; }
         input[type="text"], textarea { padding: 12px; width: 90%; font-size: 16px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; display: inline-block; }
-        textarea { height: 80px; resize: none; }
+        textarea { height: 100px; resize: none; font-family: inherit; }
         button { padding: 12px 30px; font-size: 16px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; margin-top: 20px; }
         button:hover { background-color: #218838; }
         .word-display { font-size: 36px; font-weight: bold; margin: 30px 0; color: #333; }
         .exp-image { max-width: 100%; max-height: 400px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .prompt-text { font-weight: bold; margin-top: 15px; color: #555; }
+        .prompt-text { font-weight: bold; margin-top: 15px; color: #555; text-align: left; margin-left: 5%; }
         .error { color: #dc3545; font-size: 14px; display: none; margin-bottom: 10px; }
     </style>
 </head>
@@ -35,8 +35,8 @@
 
     <div id="screen-instructions" class="hidden">
         <h2>Part 2</h2>
-        <p>Please look at each image and answer the prompts.</p>
-        <p>The first response is limited to <strong>3 words</strong>.</p>
+        <p>Please look at each image and answer the prompts below it.</p>
+        <p><strong>Note:</strong> The "Emotions" response is limited to 3 words.</p>
         <button onclick="beginImageTrials()">Continue</button>
     </div>
 
@@ -49,20 +49,20 @@
         <p id="word-error" class="error">Maximum 3 words allowed.</p>
 
         <p class="prompt-text">Tell a brief story about what is happening using those words:</p>
-        <textarea id="story-input"></textarea>
+        <textarea id="story-input" placeholder="Type your story here..."></textarea>
         
         <br>
         <button id="next-btn" onclick="nextImageTrial()">Next</button>
     </div>
 
     <div id="screen-thanks" class="hidden">
-        <h2>Submitting...</h2>
-        <p>Please do not close the window.</p>
+        <h2 id="final-status">Submitting Data...</h2>
+        <p id="final-subtext">Please do not close this window.</p>
     </div>
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLpe3QyZNgoHwAhSKp8YnkNNScLI6oTwy2xS09LxxCTfyN_vo12pzYhnDijUkBDkXUvA/exec";
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZSAprVsGTUJnMRgdqEhQD4A129bJPB5Wdy0x0kmOt6hN0doiKJQeqineUBwxQfXSkIg/exec";
     
     let participantId, condition;
     let currentWordIndex = 0;
@@ -70,8 +70,8 @@
     let wordList = [];
     let shuffledImageIds = [];
     
-    // Store results
-    const results = { emotions: [], stories: [] };
+    // Dictionary results keyed by Image ID
+    const results = { emotions: {}, stories: {} };
 
     const conditions = {
         positive: ["Joy", "Laughter", "Victory", "Paradise", "Thrill", "Kindness", "Freedom", "Beloved", "Radiant", "Triumph"],
@@ -89,7 +89,8 @@
 
     function startExperiment() {
         participantId = "ID-" + Math.random().toString(36).substr(2, 6).toUpperCase();
-        condition = Object.keys(conditions)[Math.floor(Math.random() * 3)];
+        const condKeys = Object.keys(conditions);
+        condition = condKeys[Math.floor(Math.random() * condKeys.length)];
         wordList = conditions[condition];
         
         document.getElementById('screen-welcome').classList.add('hidden');
@@ -109,6 +110,7 @@
         }
     }
 
+    // Handle 'Enter' for word task
     document.getElementById('word-input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && e.target.value.trim() !== "") {
             currentWordIndex++;
@@ -117,6 +119,7 @@
     });
 
     function beginImageTrials() {
+        // Shuffle the images specifically for this participant
         shuffledImageIds = [...imageIds].sort(() => Math.random() - 0.5);
         document.getElementById('screen-instructions').classList.add('hidden');
         document.getElementById('screen-images').classList.remove('hidden');
@@ -124,8 +127,9 @@
     }
 
     function renderImageTrial() {
+        const id = shuffledImageIds[currentImageIndex];
         document.getElementById('trial-counter').innerText = `Image ${currentImageIndex + 1} of 10`;
-        document.getElementById('active-image').src = `https://drive.google.com/thumbnail?id=${shuffledImageIds[currentImageIndex]}&sz=w1000`;
+        document.getElementById('active-image').src = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
         document.getElementById('emotion-input').value = "";
         document.getElementById('story-input').value = "";
         
@@ -139,7 +143,7 @@
         const error = document.getElementById('word-error');
         if (words.length > 3) {
             error.style.display = "block";
-            // Prevent further typing if limit reached
+            // Simple truncation logic
             input.value = words.slice(0, 3).join(" ");
         } else {
             error.style.display = "none";
@@ -149,14 +153,16 @@
     function nextImageTrial() {
         const emo = document.getElementById('emotion-input').value.trim();
         const story = document.getElementById('story-input').value.trim();
+        const currentId = shuffledImageIds[currentImageIndex];
 
         if (!emo || !story) {
             alert("Please complete both prompts before continuing.");
             return;
         }
 
-        results.emotions.push(emo);
-        results.stories.push(story);
+        // Store responses using the image ID as the key
+        results.emotions[currentId] = emo;
+        results.stories[currentId] = story;
 
         if (currentImageIndex < 9) {
             currentImageIndex++;
@@ -176,21 +182,23 @@
             Condition: condition
         };
 
-        // Populate the payload Trial_X_Emotions and Trial_X_Story
-        for (let i = 0; i < 10; i++) {
-            payload[`Trial_${i + 1}_Emotions`] = results.emotions[i];
-            payload[`Trial_${i + 1}_Story`] = results.stories[i];
-        }
+        // Attach responses using the ID-based keys to ensure they match Sheet Columns
+        imageIds.forEach(id => {
+            payload[`Emotions_${id}`] = results.emotions[id];
+            payload[`Story_${id}`] = results.stories[id];
+        });
 
         try {
             await fetch(SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors',
+                mode: 'no-cors', // Needed for Google Apps Script redirects
                 body: JSON.stringify(payload)
             });
-            document.getElementById('screen-thanks').innerHTML = "<h2>Success!</h2><p>Your data has been saved. You may now close this tab.</p>";
+            document.getElementById('final-status').innerText = "Success!";
+            document.getElementById('final-subtext').innerText = "Your responses have been saved. You can close this window.";
         } catch (e) {
-            document.getElementById('screen-thanks').innerHTML = "<h2>Error</h2><p>Something went wrong. Please screenshot your responses if possible.</p>";
+            document.getElementById('final-status').innerText = "Connection Error";
+            document.getElementById('final-subtext').innerText = "We couldn't reach the server. Please contact the researcher.";
         }
     }
 </script>
