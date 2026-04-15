@@ -193,10 +193,14 @@
             payload[id + "_story"] = results.stories[id] || "No Data";
         });
 
-        try {
+       try {
             await fetch(SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors', 
+                cache: 'no-cache',
+                headers: {
+                    'Content-Type': 'text/plain;charset=utf-8', // Google handles plain text more reliably than JSON
+                },
                 body: JSON.stringify(payload)
             });
             
