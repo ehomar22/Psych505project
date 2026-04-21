@@ -62,17 +62,17 @@
 </div>
 
 <script>
-    // --- PASTE YOUR URL BELOW ---
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxLpe3QyZNgoHwAhSKp8YnkNNScLI6oTwy2xS09LxxCTfyN_vo12pzYhnDijUkBDkXUvA/exec";
+    // --- 1. SETTINGS ---
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZSAprVsGTUJnMRgdqEhQD4A129bJPB5Wdy0x0kmOt6hN0doiKJQeqineUBwxQfXSkIg/exec";
     
-    let participantId, condition;
-    let currentWordIndex = 0;
-    let currentImageIndex = 0;
-    let wordList = [];
-    let shuffledImageIds = [];
-    
-    // Core data storage
-    const results = { emotions: {}, stories: {} };
+    // The list of the 5 images you want to use
+    const imageIds = [
+        "1jEYUA3FI6CqAkWiVfhv-X8lPbtoyywVD", 
+        "1lLsIRBdlJkJdj2pRwBhSvKLgd7UGdXQs",
+        "1FsZmNsIIAHsci5VqoKX89jbtz6rZMi5N", 
+        "1EPawWvmUz7qj6wfFr80-OCEf-fbgLW17",
+        "1DY5l-w-hLgH1O-d0Q920OKkjypSxTsom"
+    ];
 
     const conditions = {
         positive: ["Joy", "Laughter", "Victory", "Paradise", "Thrill", "Kindness", "Freedom", "Beloved", "Radiant", "Triumph"],
@@ -80,14 +80,15 @@
         control: ["Chair", "Handle", "Pencil", "Curtain", "Concrete", "Avenue", "Standard", "Platform", "Utensil", "Adjacent"]
     };
 
-    const imageIds = [
-        "1jEYUA3FI6CqAkWiVfhv-X8lPbtoyywVD", "1lLsIRBdlJkJdj2pRwBhSvKLgd7UGdXQs",
-        "1FsZmNsIIAHsci5VqoKX89jbtz6rZMi5N", "1EPawWvmUz7qj6wfFr80-OCEf-fbgLW17",
-        "1DY5l-w-hLgH1O-d0Q920OKkjypSxTsom", "13XQuxCzhpaf-aTuWm7s4VmYFZDbDgUlm",
-        "1ynE5tyxFDBp_XiadPFWP8SOcVCcS6-lz", "1MEKHRI6zvtZlnDAIK25YaDnPaovaKuB0",
-        "1PPpYEMCkGsMpcbxSQKsrtpi-c5voD3XT", "14eZtP-R0vS4hB6vtKI60wp3SiXE-TcWA"
-    ];
+    // --- 2. VARIABLES ---
+    let participantId, condition;
+    let currentWordIndex = 0;
+    let currentImageIndex = 0;
+    let wordList = [];
+    let shuffledImageIds = [];
+    const results = { emotions: {}, stories: {} };
 
+    // --- 3. LOGIC ---
     function startExperiment() {
         participantId = "ID-" + Math.random().toString(36).substr(2, 6).toUpperCase();
         const keys = Object.keys(conditions);
@@ -127,12 +128,13 @@
 
     function renderImageTrial() {
         const id = shuffledImageIds[currentImageIndex];
-        document.getElementById('trial-counter').innerText = `Image ${currentImageIndex + 1} of 10`;
+        document.getElementById('trial-counter').innerText = `Image ${currentImageIndex + 1} of 5`;
         document.getElementById('active-image').src = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
         document.getElementById('emotion-input').value = "";
         document.getElementById('story-input').value = "";
         
-        if (currentImageIndex === 9) {
+        // Final image is at index 4 (since we have 5 images)
+        if (currentImageIndex === 4) {
             document.getElementById('next-btn').innerText = "Submit";
         }
     }
@@ -158,11 +160,10 @@
             return;
         }
 
-        // SAVE DATA TO OBJECT
         results.emotions[currentId] = emo;
         results.stories[currentId] = story;
 
-        if (currentImageIndex < 9) {
+        if (currentImageIndex < 4) { // Cycle through 5 images
             currentImageIndex++;
             renderImageTrial();
             window.scrollTo(0,0);
@@ -172,37 +173,29 @@
     }
 
     async function submitFinalData() {
-    document.getElementById('screen-images').classList.add('hidden');
-    document.getElementById('screen-thanks').classList.remove('hidden');
+        document.getElementById('screen-images').classList.add('hidden');
+        document.getElementById('screen-thanks').classList.remove('hidden');
 
-    // 1. Create a URLSearchParams object (This is the "URL-Safe" way)
-    const params = new URLSearchParams();
-    params.append('Participant_ID', participantId);
-    params.append('Condition', condition);
+        const params = new URLSearchParams();
+        params.append('Participant_ID', participantId);
+        params.append('Condition', condition);
 
-    // 2. Add all the responses
-    imageIds.forEach(id => {
-        params.append(id + "_emo", results.emotions[id] || "Missing");
-        params.append(id + "_story", results.stories[id] || "Missing");
-    });
-
-    // 3. Construct the full URL with data attached
-    const finalUrl = SCRIPT_URL + "?" + params.toString();
-
-    console.log("Submitting to URL:", finalUrl);
-
-    try {
-        // We use a simple POST to the URL that has all the data attached
-        await fetch(finalUrl, {
-            method: 'POST',
-            mode: 'no-cors'
+        imageIds.forEach(id => {
+            params.append(id + "_emo", results.emotions[id] || "Missing");
+            params.append(id + "_story", results.stories[id] || "Missing");
         });
-        document.getElementById('final-status').innerText = "Success!";
-    } catch (e) {
-        document.getElementById('final-status').innerText = "Error";
-        console.error(e);
+
+        const finalUrl = SCRIPT_URL + "?" + params.toString();
+
+        try {
+            await fetch(finalUrl, { method: 'POST', mode: 'no-cors' });
+            document.getElementById('final-status').innerText = "Success!";
+            document.getElementById('final-subtext').innerText = "Your responses have been saved.";
+        } catch (e) {
+            document.getElementById('final-status').innerText = "Error";
+            console.error(e);
+        }
     }
-}
 </script>
 
 </body>
