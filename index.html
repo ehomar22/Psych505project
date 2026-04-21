@@ -36,7 +36,6 @@
     <div id="screen-instructions" class="hidden">
         <h2>Part 2</h2>
         <p>Please look at each image and answer the prompts below it.</p>
-        <p><strong>Note:</strong> The "Emotions" response is limited to 3 words.</p>
         <button onclick="beginImageTrials()">Continue</button>
     </div>
 
@@ -62,10 +61,9 @@
 </div>
 
 <script>
-    // --- 1. SETTINGS ---
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzZSAprVsGTUJnMRgdqEhQD4A129bJPB5Wdy0x0kmOt6hN0doiKJQeqineUBwxQfXSkIg/exec";
+    const SCRIPT_URL = "PASTE_YOUR_APPS_SCRIPT_URL_HERE";
     
-    // The list of the 5 images you want to use
+    // ONLY the first 5 images are here
     const imageIds = [
         "1jEYUA3FI6CqAkWiVfhv-X8lPbtoyywVD", 
         "1lLsIRBdlJkJdj2pRwBhSvKLgd7UGdXQs",
@@ -80,7 +78,6 @@
         control: ["Chair", "Handle", "Pencil", "Curtain", "Concrete", "Avenue", "Standard", "Platform", "Utensil", "Adjacent"]
     };
 
-    // --- 2. VARIABLES ---
     let participantId, condition;
     let currentWordIndex = 0;
     let currentImageIndex = 0;
@@ -88,7 +85,6 @@
     let shuffledImageIds = [];
     const results = { emotions: {}, stories: {} };
 
-    // --- 3. LOGIC ---
     function startExperiment() {
         participantId = "ID-" + Math.random().toString(36).substr(2, 6).toUpperCase();
         const keys = Object.keys(conditions);
@@ -120,6 +116,7 @@
     });
 
     function beginImageTrials() {
+        // This ensures ONLY the 5 IDs above are used
         shuffledImageIds = [...imageIds].sort(() => Math.random() - 0.5);
         document.getElementById('screen-instructions').classList.add('hidden');
         document.getElementById('screen-images').classList.remove('hidden');
@@ -133,9 +130,11 @@
         document.getElementById('emotion-input').value = "";
         document.getElementById('story-input').value = "";
         
-        // Final image is at index 4 (since we have 5 images)
+        // Final image logic (index 4 is the 5th image)
         if (currentImageIndex === 4) {
             document.getElementById('next-btn').innerText = "Submit";
+        } else {
+            document.getElementById('next-btn').innerText = "Next";
         }
     }
 
@@ -163,7 +162,7 @@
         results.emotions[currentId] = emo;
         results.stories[currentId] = story;
 
-        if (currentImageIndex < 4) { // Cycle through 5 images
+        if (currentImageIndex < 4) { 
             currentImageIndex++;
             renderImageTrial();
             window.scrollTo(0,0);
@@ -180,6 +179,7 @@
         params.append('Participant_ID', participantId);
         params.append('Condition', condition);
 
+        // This ensures only the data for these 5 specific IDs is packaged
         imageIds.forEach(id => {
             params.append(id + "_emo", results.emotions[id] || "Missing");
             params.append(id + "_story", results.stories[id] || "Missing");
